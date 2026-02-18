@@ -37,7 +37,7 @@ class Config:
 
 class ECGDataset(Dataset):
     def __init__(self, segments, labels):
-        self.segments = torch.tensor(segments, dtype=torch.float32)
+        self.segments = torch.tensor(segments, dtype=torch.float32).unsqueeze(1)
         self.labels = torch.tensor(labels, dtype=torch.long)
 
     def __len__(self):
