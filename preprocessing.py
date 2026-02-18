@@ -1,4 +1,5 @@
 import torch
+from torch.utils.data import Dataset, DataLoader, random_split
 import wfdb
 import numpy as np
 
@@ -33,6 +34,17 @@ class Config:
         'f': 'Q',  # Fusion of paced and normal beat
         'Q': 'Q',  # Unclassifiable beat
     }
+
+class ECGDataset(Dataset):
+    def __init__(self, segments, labels):
+        self.segments = torch.tensor(segments, dtype=torch.float32)
+        self.labels = torch.tensor(labels, dtype=torch.long)
+
+    def __len__(self):
+        return len(self.labels)
+
+    def __getitem__(self, idx):
+        return self.segments[idx], self.labels[idx]
 
 def loading_and_segmenting(window_size=256):
     filepath = "./mit-bih-arrhythmia-database-1.0.0/"
