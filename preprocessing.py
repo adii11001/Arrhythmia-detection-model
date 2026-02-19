@@ -83,6 +83,7 @@ def loading_and_segmenting(window_size=256):
 
     return np.array(segments, dtype=np.float32), np.array(labels, dtype=np.int64)
 
+
 def balanced_loader(dataset: ECGDataset, batch_size=32):
     """
     Applies WeightRandomSampler on the dataset and creates a DataLoader to ensure that the DataLader is balanced.
@@ -90,14 +91,19 @@ def balanced_loader(dataset: ECGDataset, batch_size=32):
     :param batch_size: int
     :return: torch.utils.data.Dataloader
     """
+    if isinstance(dataset, torch.utils.data.Subset):
+        labels = dataset.dataset.labels[dataset.indices].numpy()
+    else:
+        labels = dataset.labels.numpy()
 
     num_classes = len(Config.AAMI_CLASSES)
     class_sample_count = np.zeros(num_classes)
-    for t in dataset.labels.numpy():
+    for t in labels:
         class_sample_count[t] += 1
     class_sample_count = np.where(class_sample_count == 0, 1, class_sample_count)
     weight = 1. / class_sample_count
-    samples_weight = torch.tensor([weight[t] for t in dataset.labels.numpy()])
+    samples_weight = torch.tensor(weight[labels])
 
     sampler = WeightedRandomSampler(samples_weight, num_samples=len(samples_weight), replacement=True)
     return DataLoader(dataset, batch_size=batch_size, sampler=sampler)
+
