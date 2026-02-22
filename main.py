@@ -1,5 +1,7 @@
 from torch.utils.data import DataLoader, random_split
 import model
+from model import ECGClassifier
+import torch
 import preprocessing
 
 if __name__ == "__main__":
@@ -22,3 +24,8 @@ if __name__ == "__main__":
     # 4. Initialize and Train
     ECGModel = model.ECGClassifier(num_classes=5)
     trained_model = model.train_model(ECGModel, train_loader, val_loader, 5)
+
+    # ecg_model = ECGClassifier()
+    # ecg_model.load_state_dict(torch.load("best_ecg_model.pth", weights_only=True))
+    #
+    # preds, labels = model.test_model(ecg_model, test_loader)
