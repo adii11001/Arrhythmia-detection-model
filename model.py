@@ -108,3 +108,43 @@ def train_model(model, train_loader, val_loader, epochs=50, patience=7):
     # Load the best weights before returning
     model.load_state_dict(torch.load('best_ecg_model.pth', weights_only=True))
     return model
+
+def test_model(model, test_loader):
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.to(device)
+    model.eval()
+
+    criterion = nn.CrossEntropyLoss()
+
+    test_loss = 0
+    correct = 0
+    total = 0
+
+    all_preds = []
+    all_labels = []
+
+    with torch.no_grad():
+        for signals, labels in test_loader:
+            signals = signals.to(device)
+            labels = labels.to(device)
+
+            outputs = model(signals)
+            loss = criterion(outputs, labels)
+
+            test_loss += loss.item()
+
+            _, predicted = torch.max(outputs, 1)
+
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+
+            all_preds.extend(predicted.cpu().numpy())
+            all_labels.extend(labels.cpu().numpy())
+
+    avg_test_loss = test_loss / len(test_loader)
+    test_acc = 100.0 * correct / total
+
+    print(f"Test Loss: {avg_test_loss:.4f}")
+    print(f"Test Accuracy: {test_acc:.2f}%")
+
+    return all_preds, all_labels
