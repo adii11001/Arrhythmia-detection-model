@@ -8,33 +8,37 @@ class ECGClassifier(nn.Module):
         super(ECGClassifier, self).__init__()
 
         # Block 1: Feature Extraction
-        self.conv1 = nn.Conv1d(in_channels=1, out_channels=32, kernel_size=5, padding=2)
-        self.bn1 = nn.BatchNorm1d(32)
+        self.conv1 = nn.Conv1d(in_channels=1, out_channels=16, kernel_size=5, padding=2)
+        self.bn1 = nn.BatchNorm1d(16)
 
         # Block 2
-        self.conv2 = nn.Conv1d(32, 64, kernel_size=5, padding=2)
-        self.bn2 = nn.BatchNorm1d(64)
+        self.conv2 = nn.Conv1d(16, 32, kernel_size=5, padding=2)
+        self.bn2 = nn.BatchNorm1d(32)
 
         # Block 3
-        self.conv3 = nn.Conv1d(64, 128, kernel_size=5, padding=2)
-        self.bn3 = nn.BatchNorm1d(128)
+        self.conv3 = nn.Conv1d(32, 64, kernel_size=5, padding=2)
+        self.bn3 = nn.BatchNorm1d(64)
 
         self.pool = nn.MaxPool1d(kernel_size=2)
         self.dropout = nn.Dropout(0.3)
 
+        # Global Average Pooling replaces flatten monster
+        self.global_pool = nn.AdaptiveAvgPool1d(1)
+
         # Fully Connected Layers
-        # With window_size 256 and three poolings (256 -> 128 -> 64 -> 32)
-        self.fc1 = nn.Linear(128 * 32, 256)
-        self.fc2 = nn.Linear(256, num_classes)
+        # With window_size 256 and three poolings ( 64 -> 32)
+        self.fc1 = nn.Linear(64, 32)
+        self.fc2 = nn.Linear(32, num_classes)
 
     def forward(self, x):
         # x shape: [Batch, 1, 256]
-        x = self.pool(F.relu(self.bn1(self.conv1(x))))
-        x = self.pool(F.relu(self.bn2(self.conv2(x))))
-        x = self.pool(F.relu(self.bn3(self.conv3(x))))
+        x = self.pool(F.relu(self.bn1(self.conv1(x)))) # 256 -> 128
+        x = self.pool(F.relu(self.bn2(self.conv2(x)))) # 128 -> 64
+        x = self.pool(F.relu(self.bn3(self.conv3(x)))) # 64 -> 32
 
-        # Flatten
-        x = x.view(x.size(0), -1)
+
+        x = self.global_pool(x)  # (B, 64, 1)
+        x = x.squeeze(-1)  # (B, 64)
 
         x = F.relu(self.fc1(x))
         x = self.dropout(x)
@@ -102,5 +106,5 @@ def train_model(model, train_loader, val_loader, epochs=50, patience=7):
                 break
 
     # Load the best weights before returning
-    model.load_state_dict(torch.load('best_ecg_model.pth'))
+    model.load_state_dict(torch.load('best_ecg_model.pth', weights_only=True))
     return model
